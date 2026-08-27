@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body { background-color: #f0f2f5; padding-top: 15px; padding-bottom: 30px; }
+    .card { border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); border: none; }
+    .form-control, .form-select { height: 48px; font-size: 16px; border-radius: 10px; }
+    .btn { height: 48px; font-size: 16px; font-weight: 500; border-radius: 10px; display: flex; align-items: center; justify-content: center; }
+    .nav-pills .nav-link { border-radius: 10px; font-weight: 500; }
+    h3 { font-size: 1.35rem; font-weight: 700; }
+    #previewContainer { display: none; text-align: center; margin-bottom: 15px; }
+    #imagePreview { max-width: 100%; height: 180px; object-fit: cover; border-radius: 10px; border: 2px dashed #ccc; }
+  </style>
+</head>
+<body>
+  <div class="container px-3">
+    <div class="row justify-content-center">
+      <div class="col-12 col-md-8 col-lg-5">
+        <div class="card p-3 p-md-4 bg-white mb-4">
+          <h3 class="text-center mb-3 text-primary">📌 ลงเวลาทำงาน + ถ่ายรูป</h3>
+          
+          <ul class="nav nav-pills nav-fill mb-4 bg-light p-1 rounded-3" id="myTab" role="tablist">
+            <li class="nav-item" role="presentation">
+              <button class="nav-link active py-2" id="checkin-tab" data-bs-toggle="tab" data-bs-target="#checkin" type="button">ลงเวลา</button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link py-2" id="register-tab" data-bs-toggle="tab" data-bs-target="#register" type="button">ลงทะเบียน</button>
+            </li>
+          </ul>
+
+          <div class="tab-content" id="myTabContent">
+            <!-- Tab ลงเวลา -->
+            <div class="tab-pane fade show active" id="checkin" role="tabpanel">
+              <div class="mb-3">
+                <label class="form-label text-secondary small fw-bold">รหัสพนักงาน</label>
+                <input type="text" id="empId" class="form-control" placeholder="กรอกรหัสพนักงาน" inputmode="numeric">
+              </div>
+              <div class="mb-3">
+                <label class="form-label text-secondary small fw-bold">สถานที่ปฏิบัติงาน</label>
+                <select id="locationSelect" class="form-select">
+                  <option value="">กำลังโหลดสถานที่...</option>
+                </select>
+              </div>
+              
+              <!-- ส่วนถ่ายรูป -->
+              <div class="mb-3">
+                <label class="form-label text-secondary small fw-bold">ถ่ายรูปยืนยันตัวตน</label>
+                <!-- เพิ่ม accept และ capture เพื่อบังคับเปิดกล้องมือถือโดยตรง -->
+                <input type="file" id="cameraInput" accept="image/*" capture="environment" class="d-none" onchange="processImage(event)">
+                <div class="d-grid">
+                  <button type="button" class="btn btn-outline-primary" onclick="document.getElementById('cameraInput').click()">
+                    📸 เปิดกล้องถ่ายรูป
+                  </button>
+                </div>
+              </div>
+
+              <!-- แสดงตัวอย่างรูปถ่าย -->
+              <div id="previewContainer">
+                <img id="imagePreview" src="" alt="Preview">
+                <br>
+                <button type="button" class="btn btn-sm btn-outline-danger mt-2" style="height: 36px;" onclick="clearPhoto()">ลบรูปภาพ / ถ่ายใหม่</button>
+              </div>
+              
+              <!-- สถานะ GPS -->
+              <div class="p-3 mb-3 bg-light rounded-3 border">
+                <div class="d-flex justify-content-between align-items-center">
+                  <span id="gpsStatus" class="small text-muted">📍 กำลังค้นหาตำแหน่ง GPS...</span>
+                  <button class="btn btn-sm btn-outline-secondary py-1 px-2" style="height: auto; font-size: 12px;" onclick="getLocation()">รีเฟรช</button>
+                </div>
+              </div>
+
+              <div class="d-grid gap-2">
+                <button class="btn btn-success shadow-sm" id="btnCheckIn" onclick="handleSubmit('เข้างาน')" disabled>✅ บันทึกเข้างาน</button>
+                <button class="btn btn-danger shadow-sm" id="btnCheckOut" onclick="handleSubmit('ออกงาน')" disabled>❌ บันทึกออกงาน</button>
+              </div>
+            </div>
+
+            <!-- Tab ลงทะเบียน -->
+            <div class="tab-pane fade" id="register" role="tabpanel">
+              <div class="mb-3">
+                <label class="form-label text-secondary small fw-bold">รหัสพนักงาน</label>
+                <input type="text" id="regId" class="form-control" placeholder="กำหนดรหัสพนักงาน">
+              </div>
+              <div class="mb-3">
+                <label class="form-label text-secondary small fw-bold">ชื่อ - นามสกุล</label>
+                <input type="text" id="regName" class="form-control" placeholder="ชื่อและนามสกุลจริง">
+              </div>
+              <div class="mb-3">
+                <label class="form-label text-secondary small fw-bold">อีเมล</label>
+                <input type="email" id="regEmail" class="form-control" placeholder="name@example.com">
+              </div>
+              <div class="d-grid">
+                <button class="btn btn-primary shadow-sm" onclick="handleRegister()">📝 ยืนยันลงทะเบียน</button>
+              </div>
+            </div>
+          </div>
+          
+          <div id="alertMessage" class="mt-3"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    let currentLat = null;
+    let currentLng = null;
+    let base64Image = null;
+
+    window.onload = function() {
+      google.script.run.withSuccessHandler(function(locations) {
+        var select = document.getElementById('locationSelect');
+        select.innerHTML = '<option value="">-- เลือกสถานที่ปฏิบัติงาน --</option>';
+        locations.forEach(function(loc) {
+          var opt = document.createElement('option');
+          opt.value = loc.name;
+          opt.innerHTML = loc.name + ' (รัศมี ' + loc.radius + ' ม.)';
+          select.appendChild(opt);
+        });
+      }).getLocations();
+
+      getLocation();
+    };
+
+    function getLocation() {
+      var gpsStatus = document.getElementById('gpsStatus');
+      gpsStatus.innerHTML = `📍 กำลังค้นหาตำแหน่ง GPS...`;
+      gpsStatus.className = "small text-muted";
+      
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          function(position) {
+            currentLat = position.coords.latitude;
+            currentLng = position.coords.longitude;
+            gpsStatus.innerHTML = `📍 พิกัดพร้อมใช้งาน (${currentLat.toFixed(4)}, ${currentLng.toFixed(4)})`;
+            gpsStatus.className = "small text-success fw-bold";
+            document.getElementById('btnCheckIn').removeAttribute('disabled');
+            document.getElementById('btnCheckOut').removeAttribute('disabled');
+          },
+          function(error) {
+            gpsStatus.innerHTML = `⚠️ ไม่พบพิกัด: กรุณาเปิด Location บนมือถือ`;
+            gpsStatus.className = "small text-danger fw-bold";
+          },
+          { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+        );
+      } else {
+        gpsStatus.innerHTML = `⚠️ เบราว์เซอร์ไม่รองรับ GPS`;
+        gpsStatus.className = "small text-danger fw-bold";
+      }
+    }
+
+    // ฟังก์ชันย่อขนาดรูปภาพและแสดงพรีวิว (แก้ปัญหาไฟล์ใหญ่เกินไป)
+    function processImage(event) {
+      var file = event.target.files[0];
+      if (!file) return;
+
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        var img = new Image();
+        img.onload = function() {
+          var canvas = document.createElement('canvas');
+          var ctx = canvas.getContext('2d');
+
+          // กำหนดความกว้างสูงสุดไม่เกิน 800 พิกเซล (เพื่อลดขนาดไฟล์แต่ยังคงความคมชัดพอใช้งาน)
+          var MAX_WIDTH = 800;
+          var MAX_HEIGHT = 800;
+          var width = img.width;
+          var height = img.height;
+
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height *= MAX_WIDTH / width;
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width *= MAX_HEIGHT / height;
+              height = MAX_HEIGHT;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          ctx.drawImage(img, 0, 0, width, height);
+
+          // แปลงเป็นรูปแบบ JPEG ที่ถูกบีบอัดคุณภาพเหลือ 70%
+          base64Image = canvas.toDataURL('image/jpeg', 0.7);
+
+          // แสดงรูปพรีวิว
+          document.getElementById('imagePreview').src = base64Image;
+          document.getElementById('previewContainer').style.display = 'block';
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function clearPhoto() {
+      base64Image = null;
+      document.getElementById('cameraInput').value = '';
+      document.getElementById('imagePreview').src = '';
+      document.getElementById('previewContainer').style.display = 'none';
+    }
+
+    function showAlert(message, type) {
+      var alertDiv = document.getElementById('alertMessage');
+      alertDiv.innerHTML = `<div class="alert alert-${type} alert-dismissible fade show py-2 small" role="alert">${message}<button type="button" class="btn-close py-2" data-bs-dismiss="alert"></button></div>`;
+    }
+
+    function handleRegister() {
+      var id = document.getElementById('regId').value.trim();
+      var name = document.getElementById('regName').value.trim();
+      var email = document.getElementById('regEmail').value.trim();
+
+      if (!id || !name) {
+        showAlert('กรุณากรอกรหัสพนักงานและชื่อให้ครบถ้วน', 'warning');
+        return;
+      }
+
+      google.script.run.withSuccessHandler(function(res) {
+        if (res.success) {
+          showAlert(res.message, 'success');
+          document.getElementById('regId').value = '';
+          document.getElementById('regName').value = '';
+          document.getElementById('regEmail').value = '';
+        } else {
+          showAlert(res.message, 'danger');
+        }
+      }).registerUser(id, name, email);
+    }
+
+    function handleSubmit(type) {
+      var empId = document.getElementById('empId').value.trim();
+      var location = document.getElementById('locationSelect').value;
+
+      if (!empId) {
+        showAlert('กรุณากรอกรหัสพนักงาน', 'warning');
+        return;
+      }
+      if (!location) {
+        showAlert('กรุณาเลือกสถานที่ปฏิบัติงาน', 'warning');
+        return;
+      }
+      if (!base64Image) {
+        showAlert('กรุณาถ่ายรูปยืนยันตัวตนก่อนบันทึกเวลา', 'warning');
+        return;
+      }
+      if (currentLat === null || currentLng === null) {
+        showAlert('ยังไม่ได้รับพิกัด GPS กรุณารอสักครู่', 'warning');
+        return;
+      }
+
+      showAlert('กำลังอัปโหลดข้อมูลและรูปภาพ กรุณารอสักครู่...', 'info');
+
+      google.script.run.withSuccessHandler(function(res) {
+        if (res.success) {
+          showAlert(res.message, 'success');
+          document.getElementById('empId').value = '';
+          clearPhoto();
+        } else {
+          showAlert(res.message, 'danger');
+        }
+      }).checkInOrOut(empId, type, location, currentLat, currentLng, base64Image);
+    }
+  </script>
+</body>
+</html>
